@@ -331,29 +331,6 @@
             opacity: 1;
         }
 
-        /* 可拖动的 FAB */
-        .fab {
-            position: fixed;
-            top: 59px;
-            right: 24px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: #1976D2;
-            color: white;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
-            z-index: 200;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: none;
-            touch-action: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
         .dialog-btn-primary {
             width: 100%;
             padding: 14px;
@@ -427,8 +404,7 @@
     </div>
 
     <!-- 添加按钮 -->
-    <button class="fab" id="fabAdd" ontouchstart="startDrag(event)" ontouchmove="dragMove(event)"
-        ontouchend="endDrag(event)" onclick="showAddDialog()">+</button>
+    <button class="fab" onclick="showAddDialog()">+</button>
 
     <!-- 选择模式底部栏 -->
     <div class="selection-bar" id="selectionBar">
