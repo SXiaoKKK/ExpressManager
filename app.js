@@ -494,11 +494,11 @@ function loadScannerLibrary(callback) {
     scannerLibraryCallbacks.push(callback);
     
     const script = document.createElement('script');
-    script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    // 改用本地文件
+    script.src = 'html5-qrcode.min.js';
     script.onload = () => {
         scannerLibraryLoaded = true;
         scannerLibraryLoading = false;
-        // 执行所有等待的回调
         scannerLibraryCallbacks.forEach(cb => cb());
         scannerLibraryCallbacks = [];
     };
