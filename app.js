@@ -472,13 +472,41 @@ function createOverlay() {
 // ==================== 扫码功能 ====================
 let scannerActive = false;
 let html5QrCode = null;
+let scannerLibraryLoaded = false;  // 添加这行：标记库是否已加载
+let scannerLibraryLoading = false; // 添加这行：标记是否正在加载
+let scannerLibraryCallbacks = [];  // 添加这行：等待加载的回调队列
 
 function loadScannerLibrary(callback) {
-    if (window.Html5Qrcode) { callback(); return; }
+    // 如果已经加载过，直接回调
+    if (scannerLibraryLoaded && window.Html5Qrcode) {
+        callback();
+        return;
+    }
+    
+    // 如果正在加载中，加入等待队列
+    if (scannerLibraryLoading) {
+        scannerLibraryCallbacks.push(callback);
+        return;
+    }
+    
+    // 首次加载
+    scannerLibraryLoading = true;
+    scannerLibraryCallbacks.push(callback);
+    
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-    script.onload = callback;
-    script.onerror = () => showToast('扫码库加载失败');
+    script.onload = () => {
+        scannerLibraryLoaded = true;
+        scannerLibraryLoading = false;
+        // 执行所有等待的回调
+        scannerLibraryCallbacks.forEach(cb => cb());
+        scannerLibraryCallbacks = [];
+    };
+    script.onerror = () => {
+        scannerLibraryLoading = false;
+        scannerLibraryCallbacks = [];
+        showToast('扫码库加载失败，请检查网络');
+    };
     document.head.appendChild(script);
 }
 
@@ -503,13 +531,20 @@ function startScan() {
         }
         
         scannerContainer.style.display = 'flex';
+        
+        // 如果已有实例，先清理
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+        }
+        
         html5QrCode = new Html5Qrcode("reader");
         
         const config = {
             fps: 30,
-            qrbox: { width: 280, height: 120 },
-            aspectRatio: 2.5,
+            qrbox: { width: 300, height: 100 },
+            aspectRatio: 3.0,
             disableFlip: true,
+            // 只保留快递常用的条码格式
             formatsToSupport: [
                 Html5QrcodeSupportedFormats.CODE_128,
                 Html5QrcodeSupportedFormats.CODE_39,
@@ -518,7 +553,6 @@ function startScan() {
                 Html5QrcodeSupportedFormats.UPC_A,
                 Html5QrcodeSupportedFormats.UPC_E,
                 Html5QrcodeSupportedFormats.ITF,
-                Html5QrcodeSupportedFormats.CODABAR,
                 Html5QrcodeSupportedFormats.QR_CODE,
             ]
         };
@@ -527,7 +561,7 @@ function startScan() {
             { facingMode: "environment" },
             config,
             onScanSuccess,
-            () => {} // 空回调，不处理失败
+            () => {} // 空回调
         ).catch(err => {
             showToast('无法打开摄像头: ' + err.message);
             stopScan();
@@ -637,3 +671,10 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 
 // ==================== 初始渲染 ====================
 render();
+
+// 预加载扫码库（后台静默加载，不阻塞页面）
+setTimeout(() => {
+    loadScannerLibrary(() => {
+        console.log('扫码库预加载完成');
+    });
+}, 1000);
