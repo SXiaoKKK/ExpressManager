@@ -57,8 +57,7 @@ function render() {
             const statusText = item.signed ? '已签收' : '未签收';
 
             html += `
-                <div class="express-item${selectedClass}" 
-                     onclick="onItemClick('${item.id}')" 
+                <div class="express-item${selectedClass}"  
                      data-id="${item.id}">
                     <span class="express-number">${escapeHtml(item.trackingNumber)}</span>
                     <span class="express-status ${statusClass}">${statusText}</span>
@@ -124,7 +123,11 @@ function updateUI() {
 
 // ==================== 事件处理 ====================
 let longPressTimer = null;
+let touchStartX = 0;
+let touchStartY = 0;
+let isDragging = false;
 
+// 点击处理（直接在元素上绑定）
 function onItemClick(id) {
     if (selectionMode) {
         toggleSelect(id);
@@ -133,55 +136,119 @@ function onItemClick(id) {
     }
 }
 
-// 长按进入选择模式
-document.addEventListener('touchstart', function (e) {
+// 使用事件委托处理所有交互
+document.getElementById('listContainer').addEventListener('touchstart', function(e) {
     const item = e.target.closest('.express-item');
-    if (!item || selectionMode) return;
-
-    longPressTimer = setTimeout(() => {
-        selectionMode = true;
-        toggleSelect(item.dataset.id);
-        render();
-    }, 500);
-});
-
-document.addEventListener('touchend', function () {
-    clearTimeout(longPressTimer);
-});
-
-document.addEventListener('touchmove', function () {
-    clearTimeout(longPressTimer);
-});
-
-function toggleSelect(id) {
-    if (selectedIds.has(id)) {
-        selectedIds.delete(id);
-    } else {
-        selectedIds.add(id);
+    if (!item) return;
+    
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isDragging = false;
+    
+    // 长按进入选择模式
+    if (!selectionMode) {
+        longPressTimer = setTimeout(() => {
+            if (!isDragging) {
+                selectionMode = true;
+                toggleSelect(item.dataset.id);
+                render();
+            }
+        }, 500);
     }
-    render();
-}
+}, { passive: false });
 
-function toggleSelectAll() {
-    const filtered = expressList.filter(e => {
-        if (currentFilter === 'signed') return e.signed;
-        if (currentFilter === 'unsigned') return !e.signed;
-        return true;
-    });
-
-    if (selectedIds.size === filtered.length) {
-        selectedIds.clear();
-    } else {
-        filtered.forEach(e => selectedIds.add(e.id));
+document.getElementById('listContainer').addEventListener('touchmove', function(e) {
+    if (!longPressTimer) return;
+    
+    const moveX = e.touches[0].clientX - touchStartX;
+    const moveY = e.touches[0].clientY - touchStartY;
+    
+    // 移动超过10像素，取消长按
+    if (Math.abs(moveX) > 10 || Math.abs(moveY) > 10) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+        isDragging = true;
     }
-    render();
-}
+}, { passive: true });
 
-function exitSelectionMode() {
-    selectionMode = false;
-    selectedIds.clear();
-    render();
-}
+document.getElementById('listContainer').addEventListener('touchend', function(e) {
+    clearTimeout(longPressTimer);
+    
+    // 如果不是拖动，且不是选择模式，触发点击
+    if (!isDragging && !selectionMode) {
+        const item = e.target.closest('.express-item');
+        if (item && longPressTimer) {
+            // 短按 = 点击
+            onItemClick(item.dataset.id);
+        }
+    }
+    
+    // 如果是选择模式，点击切换选中
+    if (!isDragging && selectionMode) {
+        const item = e.target.closest('.express-item');
+        if (item) {
+            e.preventDefault();
+            onItemClick(item.dataset.id);
+        }
+    }
+    
+    longPressTimer = null;
+    isDragging = false;
+});
+
+// 鼠标事件（桌面端）
+document.getElementById('listContainer').addEventListener('mousedown', function(e) {
+    const item = e.target.closest('.express-item');
+    if (!item) return;
+    
+    touchStartX = e.clientX;
+    touchStartY = e.clientY;
+    isDragging = false;
+    
+    if (!selectionMode) {
+        longPressTimer = setTimeout(() => {
+            if (!isDragging) {
+                selectionMode = true;
+                toggleSelect(item.dataset.id);
+                render();
+            }
+        }, 500);
+    }
+});
+
+document.getElementById('listContainer').addEventListener('mousemove', function(e) {
+    if (!longPressTimer) return;
+    
+    const moveX = e.clientX - touchStartX;
+    const moveY = e.clientY - touchStartY;
+    
+    if (Math.abs(moveX) > 5 || Math.abs(moveY) > 5) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+        isDragging = true;
+    }
+});
+
+document.getElementById('listContainer').addEventListener('mouseup', function(e) {
+    clearTimeout(longPressTimer);
+    
+    if (!isDragging && !selectionMode) {
+        const item = e.target.closest('.express-item');
+        if (item && longPressTimer) {
+            onItemClick(item.dataset.id);
+        }
+    }
+    
+    if (!isDragging && selectionMode) {
+        const item = e.target.closest('.express-item');
+        if (item) {
+            onItemClick(item.dataset.id);
+        }
+    }
+    
+    longPressTimer = null;
+    isDragging = false;
+});
 
 // ==================== 筛选 ====================
 function switchFilter(filter) {
