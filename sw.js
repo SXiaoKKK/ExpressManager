@@ -3,6 +3,7 @@ const urlsToCache = [
     '.',
     'index.html',
     'app.js',
+    'html5-qrcode.min.js',  // 添加这行
     'manifest.json',
     'icons/icon-192.png',
     'icons/icon-512.png'
