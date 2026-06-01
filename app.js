@@ -591,7 +591,6 @@ function loadScannerLibrary(callback) {
 // 开始扫码
 function startScan() {
     loadScannerLibrary(() => {
-        // 创建扫码容器
         let scannerContainer = document.getElementById('scannerContainer');
         if (!scannerContainer) {
             scannerContainer = document.createElement('div');
@@ -611,12 +610,12 @@ function startScan() {
             `;
 
             scannerContainer.innerHTML = `
-                <div style="color:white;font-size:18px;margin-bottom:16px;">
-                    将快递单号条形码/二维码置于框内
+                <div style="color:white;font-size:18px;margin-bottom:12px;">
+                    将快递单号条码置于框内
                 </div>
-                <div id="reader" style="width:300px;max-width:90vw;"></div>
+                <div id="reader" style="width:100%;max-width:400px;"></div>
                 <button id="btnCloseScanner" style="
-                    margin-top:20px;
+                    margin-top:16px;
                     padding:12px 40px;
                     border-radius:25px;
                     border:2px solid white;
@@ -628,35 +627,39 @@ function startScan() {
             `;
 
             document.body.appendChild(scannerContainer);
-
             document.getElementById('btnCloseScanner').onclick = stopScan;
         }
 
         scannerContainer.style.display = 'flex';
 
-        // 初始化扫码器
         html5QrCode = new Html5Qrcode("reader");
 
+        // ====== 优化配置：提高扫码速度 ======
         const config = {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1,
+            fps: 30,  // 从10提升到30帧/秒，扫描更流畅
+            experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true  // 使用浏览器原生条码检测API（更快）
+            },
+            qrbox: { width: 280, height: 120 },  // 改为横向矩形，更适合条形码
+            aspectRatio: 2.5,  // 宽高比适合条形码
+            disableFlip: true,  // 禁止镜像翻转，减少处理时间
             formatsToSupport: [
+                // 只保留快递单号常用的条码格式，减少不必要的解码
                 Html5QrcodeSupportedFormats.CODE_128,
                 Html5QrcodeSupportedFormats.CODE_39,
-                Html5QrcodeSupportedFormats.QR_CODE,
                 Html5QrcodeSupportedFormats.EAN_13,
                 Html5QrcodeSupportedFormats.EAN_8,
                 Html5QrcodeSupportedFormats.UPC_A,
                 Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.CODABAR,
                 Html5QrcodeSupportedFormats.ITF,
-                Html5QrcodeSupportedFormats.DATA_MATRIX,
+                Html5QrcodeSupportedFormats.CODABAR,
+                // 保留二维码
+                Html5QrcodeSupportedFormats.QR_CODE,
             ]
         };
 
         html5QrCode.start(
-            { facingMode: "environment" }, // 后置摄像头
+            { facingMode: "environment" },
             config,
             onScanSuccess,
             onScanFailure
@@ -673,24 +676,29 @@ function startScan() {
 function onScanSuccess(decodedText, decodedResult) {
     if (!scannerActive) return;
 
-    // 震动反馈（如果设备支持）
+    // 立即暂停扫描，防止重复识别
+    scannerActive = false;
+
+    // 震动反馈
     if (navigator.vibrate) {
         navigator.vibrate(200);
     }
 
-    // 从扫码结果中提取快递单号
+    // 提取快递单号
     const trackingNumber = extractTrackingNumberFromScan(decodedText);
 
     // 关闭扫码器
     stopScan();
 
-    // 显示扫码结果
-    showScanResult(trackingNumber);
+    // 显示结果
+    setTimeout(() => {
+        showScanResult(trackingNumber);
+    }, 100);
 }
 
-// 扫码失败回调
+// 扫码失败回调（什么都不做，减少开销）
 function onScanFailure(error) {
-    // 忽略频繁的扫描失败，不打印日志
+    // 不打印任何日志，提高性能
 }
 
 // 停止扫码
@@ -841,6 +849,83 @@ function showScanResult(trackingNumber) {
         }
     });
 }
+
+// ==================== FAB 拖动功能 ====================
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let fabStartX = 0;
+let fabStartY = 0;
+let hasMoved = false;
+const DRAG_THRESHOLD = 5; // 移动超过5px才算拖动
+
+const fab = document.getElementById('fabAdd');
+
+function startDrag(e) {
+    isDragging = true;
+    hasMoved = false;
+    const touch = e.touches[0];
+    dragStartX = touch.clientX;
+    dragStartY = touch.clientY;
+    fabStartX = fab.offsetLeft;
+    fabStartY = fab.offsetTop;
+    fab.style.transition = 'none';
+    e.preventDefault();
+}
+
+function dragMove(e) {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - dragStartX;
+    const deltaY = touch.clientY - dragStartY;
+
+    if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) {
+        hasMoved = true;
+    }
+
+    let newX = fabStartX + deltaX;
+    let newY = fabStartY + deltaY;
+
+    // 边界限制
+    const maxX = window.innerWidth - fab.offsetWidth;
+    const maxY = window.innerHeight - fab.offsetHeight;
+
+    newX = Math.max(0, Math.min(newX, maxX));
+    newY = Math.max(0, Math.min(newY, maxY));
+
+    fab.style.left = newX + 'px';
+    fab.style.top = newY + 'px';
+    fab.style.right = 'auto';
+    fab.style.bottom = 'auto';
+    e.preventDefault();
+}
+
+function endDrag(e) {
+    isDragging = false;
+
+    // 吸附到屏幕边缘
+    const left = fab.offsetLeft;
+    const centerX = window.innerWidth / 2;
+
+    if (left < centerX) {
+        fab.style.left = '24px';
+        fab.style.right = 'auto';
+    } else {
+        fab.style.left = 'auto';
+        fab.style.right = '24px';
+    }
+
+    fab.style.transition = 'left 0.3s ease, right 0.3s ease';
+}
+
+// 防止拖动时触发点击事件
+fab.addEventListener('click', function (e) {
+    if (hasMoved) {
+        e.stopPropagation();
+        e.preventDefault();
+        hasMoved = false;
+    }
+});
 
 // ==================== 工具函数 ====================
 function parseTrackingNumbers(text) {
