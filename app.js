@@ -541,7 +541,7 @@ function startScan() {
         
         const config = {
             fps: 30,
-            qrbox: { width: 300, height: 300 },
+            qrbox: { width: 300, height: 100 },
             aspectRatio: 3.0,
             disableFlip: true,
             // 只保留快递常用的条码格式
