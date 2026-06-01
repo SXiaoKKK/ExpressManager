@@ -21,7 +21,7 @@ let html5QrCode = null;
 // ==================== 渲染 ====================
 function render() {
     const container = document.getElementById('listContainer');
-    
+
     // 过滤数据
     let filtered = expressList;
     if (searchMode) {
@@ -32,22 +32,22 @@ function render() {
     } else if (currentFilter === 'unsigned') {
         filtered = expressList.filter(e => !e.signed);
     }
-    
+
     // 按日期分组排序
     filtered.sort((a, b) => b.createDate - a.createDate);
-    
+
     const groups = {};
     filtered.forEach(item => {
         const dateKey = formatDate(new Date(item.createDate));
         if (!groups[dateKey]) groups[dateKey] = [];
         groups[dateKey].push(item);
     });
-    
+
     if (Object.keys(groups).length === 0) {
         container.innerHTML = '<div class="empty-state">暂无快递单号</div>';
         return;
     }
-    
+
     let html = '';
     for (const [date, items] of Object.entries(groups)) {
         html += `<div class="date-header">${date}</div>`;
@@ -55,7 +55,7 @@ function render() {
             const selectedClass = selectedIds.has(item.id) ? ' selected' : '';
             const statusClass = item.signed ? 'status-signed' : 'status-unsigned';
             const statusText = item.signed ? '已签收' : '未签收';
-            
+
             html += `
                 <div class="express-item${selectedClass}" 
                      onclick="onItemClick('${item.id}')" 
@@ -66,7 +66,7 @@ function render() {
             `;
         });
     }
-    
+
     container.innerHTML = html;
     updateUI();
 }
@@ -89,7 +89,7 @@ function updateUI() {
     document.getElementById('btnSelectAll').style.display = selectionMode ? '' : 'none';
     document.getElementById('btnBatch').style.display = selectionMode ? '' : 'none';
     document.getElementById('btnExitSelect').style.display = selectionMode ? '' : 'none';
-    
+
     // 标题
     if (searchMode) {
         document.getElementById('toolbarTitle').textContent = '搜索结果';
@@ -98,7 +98,7 @@ function updateUI() {
     } else {
         document.getElementById('toolbarTitle').textContent = '快递管理';
     }
-    
+
     // 底部选择栏
     const selectionBar = document.getElementById('selectionBar');
     if (selectionMode && selectedIds.size > 0) {
@@ -107,14 +107,14 @@ function updateUI() {
     } else {
         selectionBar.classList.remove('show');
     }
-    
+
     // 全选按钮图标
     const totalItems = expressList.filter(e => {
         if (currentFilter === 'signed') return e.signed;
         if (currentFilter === 'unsigned') return !e.signed;
         return true;
     }).length;
-    
+
     if (selectedIds.size === totalItems && totalItems > 0) {
         document.getElementById('btnSelectAll').textContent = '☑';
     } else {
@@ -134,10 +134,10 @@ function onItemClick(id) {
 }
 
 // 长按进入选择模式
-document.addEventListener('touchstart', function(e) {
+document.addEventListener('touchstart', function (e) {
     const item = e.target.closest('.express-item');
     if (!item || selectionMode) return;
-    
+
     longPressTimer = setTimeout(() => {
         selectionMode = true;
         toggleSelect(item.dataset.id);
@@ -145,11 +145,11 @@ document.addEventListener('touchstart', function(e) {
     }, 500);
 });
 
-document.addEventListener('touchend', function() {
+document.addEventListener('touchend', function () {
     clearTimeout(longPressTimer);
 });
 
-document.addEventListener('touchmove', function() {
+document.addEventListener('touchmove', function () {
     clearTimeout(longPressTimer);
 });
 
@@ -168,7 +168,7 @@ function toggleSelectAll() {
         if (currentFilter === 'unsigned') return !e.signed;
         return true;
     });
-    
+
     if (selectedIds.size === filtered.length) {
         selectedIds.clear();
     } else {
@@ -186,7 +186,7 @@ function exitSelectionMode() {
 // ==================== 筛选 ====================
 function switchFilter(filter) {
     if (searchMode) exitSearchMode();
-    
+
     currentFilter = filter;
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
@@ -197,11 +197,11 @@ function switchFilter(filter) {
 function showAddDialog() {
     document.getElementById('addModal').classList.add('show');
     document.getElementById('addInput').focus();
-    
+
     // 自动粘贴剪贴板
     navigator.clipboard?.readText().then(text => {
         if (text) document.getElementById('addInput').value = text;
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 function closeModal(id) {
@@ -221,13 +221,13 @@ function pasteAndAdd() {
 function addExpress() {
     const text = document.getElementById('addInput').value.trim();
     if (!text) return;
-    
+
     const numbers = parseTrackingNumbers(text);
     if (numbers.length === 0) {
         showToast('未识别到有效的快递单号');
         return;
     }
-    
+
     numbers.forEach(num => {
         // 检查是否已存在
         if (!expressList.find(e => e.trackingNumber === num)) {
@@ -239,7 +239,7 @@ function addExpress() {
             });
         }
     });
-    
+
     saveData(expressList);
     closeModal('addModal');
     document.getElementById('addInput').value = '';
@@ -256,18 +256,18 @@ function showSearchDialog() {
 function performSearch() {
     const text = document.getElementById('searchInput').value.trim();
     if (!text) return;
-    
+
     const numbers = parseTrackingNumbers(text);
     if (numbers.length === 0) {
         showToast('请输入有效的快递单号');
         return;
     }
-    
+
     searchMode = true;
-    window.searchResults = expressList.filter(e => 
+    window.searchResults = expressList.filter(e =>
         numbers.some(n => e.trackingNumber.includes(n))
     );
-    
+
     closeModal('searchModal');
     document.getElementById('searchInput').value = '';
     render();
@@ -286,7 +286,7 @@ function showBatchDialog() {
         showToast('请先选择快递单号');
         return;
     }
-    
+
     // 直接使用底部栏的按钮
 }
 
@@ -304,14 +304,72 @@ function toggleSelectedStatus(signed) {
 
 function deleteSelected() {
     if (selectedIds.size === 0) return;
-    
-    if (confirm(`确定要删除 ${selectedIds.size} 个快递单号吗？`)) {
+
+    const count = selectedIds.size;
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.zIndex = '550';
+
+    overlay.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 85%;
+            max-width: 360px;
+            text-align: center;
+        ">
+            <div style="font-size: 18px;font-weight: bold;margin-bottom: 12px;">确认删除</div>
+            <div style="font-size: 15px;color: #666;margin-bottom: 20px;">
+                确定要删除 ${count} 个快递单号吗？
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="btnCancelBatchDelete" style="
+                    flex: 1;
+                    padding: 14px;
+                    border-radius: 8px;
+                    border: 1px solid #ddd;
+                    background: white;
+                    color: #666;
+                    font-size: 16px;
+                    cursor: pointer;
+                ">取消</button>
+                <button id="btnConfirmBatchDelete" style="
+                    flex: 1;
+                    padding: 14px;
+                    border-radius: 8px;
+                    border: none;
+                    background: #e53935;
+                    color: white;
+                    font-size: 16px;
+                    cursor: pointer;
+                ">删除</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#btnCancelBatchDelete').onclick = () => {
+        document.body.removeChild(overlay);
+    };
+
+    overlay.querySelector('#btnConfirmBatchDelete').onclick = () => {
         const ids = Array.from(selectedIds);
         expressList = expressList.filter(e => !ids.includes(e.id));
         saveData(expressList);
-        showToast('已删除');
+        showToast(`已删除 ${count} 个快递单号`);
+        document.body.removeChild(overlay);
         exitSelectionMode();
-    }
+    };
+
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) {
+            document.body.removeChild(overlay);
+        }
+    });
 }
 
 function copySelected() {
@@ -319,13 +377,13 @@ function copySelected() {
         showToast('请先选择快递单号');
         return;
     }
-    
+
     const ids = Array.from(selectedIds);
     const text = expressList
         .filter(e => ids.includes(e.id))
         .map(e => e.trackingNumber)
         .join('\n');
-    
+
     navigator.clipboard.writeText(text).then(() => {
         showToast(`已复制 ${selectedIds.size} 个快递单号`);
     }).catch(() => {
@@ -333,31 +391,183 @@ function copySelected() {
     });
 }
 
-// ==================== 单个操作 ====================
+// ==================== 单个操作弹窗 ====================
 function showItemActionDialog(id) {
     const item = expressList.find(e => e.id === id);
     if (!item) return;
-    
-    const action = confirm(
-        `操作: ${item.trackingNumber}\n\n` +
-        `当前状态: ${item.signed ? '已签收' : '未签收'}\n\n` +
-        `点击确定: ${item.signed ? '标记为未签收' : '标记为已签收'}\n` +
-        `点击取消: 删除此单号`
-    );
-    
-    if (action) {
+
+    // 创建弹窗
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.zIndex = '500';
+
+    const actionText = item.signed ? '标记为未签收' : '标记为已签收';
+
+    overlay.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 85%;
+            max-width: 360px;
+        ">
+            <div style="
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 8px;
+                text-align: center;
+                word-break: break-all;
+            ">操作: ${escapeHtml(item.trackingNumber)}</div>
+            
+            <div style="
+                text-align: center;
+                color: #666;
+                font-size: 14px;
+                margin-bottom: 20px;
+            ">当前状态: ${item.signed ? '✅ 已签收' : '📦 未签收'}</div>
+            
+            <button id="btnToggleStatus" style="
+                width: 100%;
+                padding: 14px;
+                border-radius: 8px;
+                border: none;
+                background: #1976D2;
+                color: white;
+                font-size: 16px;
+                cursor: pointer;
+                margin-bottom: 10px;
+            ">${actionText}</button>
+            
+            <button id="btnDeleteItem" style="
+                width: 100%;
+                padding: 14px;
+                border-radius: 8px;
+                border: 1px solid #e53935;
+                background: white;
+                color: #e53935;
+                font-size: 16px;
+                cursor: pointer;
+                margin-bottom: 10px;
+            ">删除此单号</button>
+            
+            <button id="btnCloseDialog" style="
+                width: 100%;
+                padding: 14px;
+                border-radius: 8px;
+                border: 1px solid #ddd;
+                background: white;
+                color: #666;
+                font-size: 16px;
+                cursor: pointer;
+            ">取消</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // 标记签收/未签收
+    overlay.querySelector('#btnToggleStatus').onclick = () => {
         item.signed = !item.signed;
         saveData(expressList);
         showToast(item.signed ? '已标记为已签收' : '已标记为未签收');
-    } else {
-        if (confirm('确定要删除吗？')) {
-            expressList = expressList.filter(e => e.id !== id);
-            saveData(expressList);
-            showToast('已删除');
+        document.body.removeChild(overlay);
+        render();
+    };
+
+    // 删除
+    overlay.querySelector('#btnDeleteItem').onclick = () => {
+        document.body.removeChild(overlay);
+        // 二次确认
+        showDeleteConfirm(id, item.trackingNumber);
+    };
+
+    // 取消
+    overlay.querySelector('#btnCloseDialog').onclick = () => {
+        document.body.removeChild(overlay);
+    };
+
+    // 点击遮罩关闭
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) {
+            document.body.removeChild(overlay);
         }
-    }
-    
-    render();
+    });
+}
+
+// 删除确认弹窗
+function showDeleteConfirm(id, trackingNumber) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.zIndex = '550';
+
+    overlay.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 85%;
+            max-width: 360px;
+            text-align: center;
+        ">
+            <div style="font-size: 18px;font-weight: bold;margin-bottom: 12px;">确认删除</div>
+            <div style="font-size: 15px;color: #666;margin-bottom: 8px;word-break: break-all;">
+                确定要删除快递单号
+            </div>
+            <div style="
+                font-size: 16px;
+                font-weight: bold;
+                color: #e53935;
+                margin-bottom: 20px;
+                word-break: break-all;
+            ">${escapeHtml(trackingNumber)}</div>
+            <div style="display: flex; gap: 10px;">
+                <button id="btnCancelDelete" style="
+                    flex: 1;
+                    padding: 14px;
+                    border-radius: 8px;
+                    border: 1px solid #ddd;
+                    background: white;
+                    color: #666;
+                    font-size: 16px;
+                    cursor: pointer;
+                ">取消</button>
+                <button id="btnConfirmDelete" style="
+                    flex: 1;
+                    padding: 14px;
+                    border-radius: 8px;
+                    border: none;
+                    background: #e53935;
+                    color: white;
+                    font-size: 16px;
+                    cursor: pointer;
+                ">删除</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#btnCancelDelete').onclick = () => {
+        document.body.removeChild(overlay);
+    };
+
+    overlay.querySelector('#btnConfirmDelete').onclick = () => {
+        expressList = expressList.filter(e => e.id !== id);
+        saveData(expressList);
+        showToast('已删除');
+        document.body.removeChild(overlay);
+        render();
+    };
+
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) {
+            document.body.removeChild(overlay);
+        }
+    });
 }
 
 // ==================== 扫码功能 ====================
@@ -368,7 +578,7 @@ function loadScannerLibrary(callback) {
         callback();
         return;
     }
-    
+
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
     script.onload = callback;
@@ -399,7 +609,7 @@ function startScan() {
                 align-items: center;
                 justify-content: center;
             `;
-            
+
             scannerContainer.innerHTML = `
                 <div style="color:white;font-size:18px;margin-bottom:16px;">
                     将快递单号条形码/二维码置于框内
@@ -416,17 +626,17 @@ function startScan() {
                     cursor:pointer;
                 ">关闭扫码</button>
             `;
-            
+
             document.body.appendChild(scannerContainer);
-            
+
             document.getElementById('btnCloseScanner').onclick = stopScan;
         }
-        
+
         scannerContainer.style.display = 'flex';
-        
+
         // 初始化扫码器
         html5QrCode = new Html5Qrcode("reader");
-        
+
         const config = {
             fps: 10,
             qrbox: { width: 250, height: 250 },
@@ -444,7 +654,7 @@ function startScan() {
                 Html5QrcodeSupportedFormats.DATA_MATRIX,
             ]
         };
-        
+
         html5QrCode.start(
             { facingMode: "environment" }, // 后置摄像头
             config,
@@ -454,7 +664,7 @@ function startScan() {
             showToast('无法打开摄像头: ' + err.message);
             stopScan();
         });
-        
+
         scannerActive = true;
     });
 }
@@ -462,18 +672,18 @@ function startScan() {
 // 扫码成功回调
 function onScanSuccess(decodedText, decodedResult) {
     if (!scannerActive) return;
-    
+
     // 震动反馈（如果设备支持）
     if (navigator.vibrate) {
         navigator.vibrate(200);
     }
-    
+
     // 从扫码结果中提取快递单号
     const trackingNumber = extractTrackingNumberFromScan(decodedText);
-    
+
     // 关闭扫码器
     stopScan();
-    
+
     // 显示扫码结果
     showScanResult(trackingNumber);
 }
@@ -486,14 +696,14 @@ function onScanFailure(error) {
 // 停止扫码
 function stopScan() {
     scannerActive = false;
-    
+
     if (html5QrCode) {
         html5QrCode.stop().then(() => {
             html5QrCode.clear();
-        }).catch(() => {});
+        }).catch(() => { });
         html5QrCode = null;
     }
-    
+
     const container = document.getElementById('scannerContainer');
     if (container) {
         container.style.display = 'none';
@@ -504,7 +714,7 @@ function stopScan() {
 function extractTrackingNumberFromScan(text) {
     // 去除空格和特殊字符
     const cleaned = text.trim();
-    
+
     // 尝试匹配快递单号格式（字母数字组合，8-30位）
     const match = cleaned.match(/[A-Za-z0-9]{8,30}/);
     return match ? match[0] : cleaned;
@@ -516,7 +726,7 @@ function showScanResult(trackingNumber) {
     const exists = expressList.find(e => e.trackingNumber === trackingNumber);
     const statusEmoji = exists ? '✅ 该单号已存在' : '🆕 新单号';
     const statusColor = exists ? '#2e7d32' : '#1976D2';
-    
+
     const overlay = document.createElement('div');
     overlay.style.cssText = `
         position: fixed;
@@ -530,7 +740,7 @@ function showScanResult(trackingNumber) {
         align-items: center;
         justify-content: center;
     `;
-    
+
     overlay.innerHTML = `
         <div style="
             background: white;
@@ -589,9 +799,9 @@ function showScanResult(trackingNumber) {
             ">关闭</button>
         </div>
     `;
-    
+
     document.body.appendChild(overlay);
-    
+
     // 按钮事件
     overlay.querySelector('#btnAddScan').onclick = () => {
         if (!expressList.find(e => e.trackingNumber === trackingNumber)) {
@@ -609,23 +819,23 @@ function showScanResult(trackingNumber) {
         document.body.removeChild(overlay);
         render();
     };
-    
+
     overlay.querySelector('#btnSearchScan').onclick = () => {
         document.body.removeChild(overlay);
         searchMode = true;
-        window.searchResults = expressList.filter(e => 
+        window.searchResults = expressList.filter(e =>
             e.trackingNumber.includes(trackingNumber)
         );
         render();
         showToast(`找到 ${window.searchResults.length} 条记录`);
     };
-    
+
     overlay.querySelector('#btnCloseScanResult').onclick = () => {
         document.body.removeChild(overlay);
     };
-    
+
     // 点击遮罩关闭
-    overlay.addEventListener('click', function(e) {
+    overlay.addEventListener('click', function (e) {
         if (e.target === overlay) {
             document.body.removeChild(overlay);
         }
@@ -654,10 +864,10 @@ function showToast(msg) {
 
 // ==================== 初始化 ====================
 // 给桌面端也添加长按支持
-document.addEventListener('mousedown', function(e) {
+document.addEventListener('mousedown', function (e) {
     const item = e.target.closest('.express-item');
     if (!item || selectionMode) return;
-    
+
     longPressTimer = setTimeout(() => {
         selectionMode = true;
         toggleSelect(item.dataset.id);
@@ -665,13 +875,13 @@ document.addEventListener('mousedown', function(e) {
     }, 500);
 });
 
-document.addEventListener('mouseup', function() {
+document.addEventListener('mouseup', function () {
     clearTimeout(longPressTimer);
 });
 
 // 点击弹窗遮罩关闭
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function(e) {
+    overlay.addEventListener('click', function (e) {
         if (e.target === overlay) {
             overlay.classList.remove('show');
         }
